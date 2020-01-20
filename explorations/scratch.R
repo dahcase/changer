@@ -25,4 +25,13 @@ nnn = as.Date(nnn, '%Y_%m_%d')
 tras = brick(lapply(seq_len(length(nnn)), function(x) raster(matrix(NA, 1,1))))
 tras[] = ras[1,1]
 
-res <- changer(tras, nnn)
+res1 <- changer(tras, nnn)
+res2 <- changer(tras, nnn, n.changepoints = 100)
+
+
+#changeypointy
+
+chg = lapply(c(1,10,100,200), function(x) changer(tras,nnn,n.changepoints = x)[[1]]$changepoints)
+vapply(chg, length, 1) #same as input?
+
+
