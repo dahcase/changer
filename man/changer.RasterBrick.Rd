@@ -20,3 +20,6 @@
 \description{
 Changepoint detection for stars objects
 }
+\details{
+Warning. raster converts to an array internally and therefore involves a copy.
+}

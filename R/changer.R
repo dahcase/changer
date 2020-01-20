@@ -32,6 +32,10 @@ changer.stars <- function(x, method = 'prophet', FUTURE = FALSE, ...){
 #' @param method character. One of prophet, ...
 #' @param FUTURE logical. Controls whether the calculation should be done in parallel via the future package.
 #' @param ... arguments passed to the underlying method.
+#'
+#' @details Warning. raster converts to an array internally and therefore involves a copy.
+#'
+#' @export
 changer.RasterBrick <- function(x, dates, method = 'prophet', FUTURE = FALSE, ...){
 
   #confirm dimensions
@@ -39,10 +43,10 @@ changer.RasterBrick <- function(x, dates, method = 'prophet', FUTURE = FALSE, ..
 
   stopifnot(inherits(dates, 'Date'))
 
+  x <- array(x, dim = dim(x))
+
   if(method == 'prophet'){
-
-    apply(x, 1:2, function(x) pixel_prophet(x, dates, ...), FUTURE = FUTURE)
-
+    ret <- future.apply::future_apply(x, 1:2, pixel_prophet, dates = dates, ...)
   }
 
 }
