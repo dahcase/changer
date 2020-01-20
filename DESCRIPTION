@@ -1,11 +1,18 @@
 Package: changer
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Applies change detection algorithms to rasters
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Daniel Casey
+Maintainer: Daniel Casey <bobbillhoff@gmail.com>
+Description: Apply change detection algorithms to rasters. Currently implements prophet.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
+Imports: 
+    future,
+    stars,
+    future.apply,
+    prophet,
+    dplyr,
+    raster
+RoxygenNote: 7.0.2
