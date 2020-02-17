@@ -13,5 +13,9 @@ pixel_prophet <- function(x, dates, ...){
 
   mod = prophet::prophet(df, ...)
 
-  return(mod)
+  #return the time and magnitude of changes
+  stopifnot(NROW(mod$params$delta)==1)
+  res = list(as.numeric(rate_change = mod$params$delta), change_time = mod$changepoints)
+
+  return(res)
 }

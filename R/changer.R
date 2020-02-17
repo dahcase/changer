@@ -47,6 +47,7 @@ changer.RasterBrick <- function(x, dates, method = 'prophet', FUTURE = FALSE, ..
 
   if(method == 'prophet'){
     ret <- future.apply::future_apply(x, 1:2, pixel_prophet, dates = dates, ...)
+    ret <- aperm(2,3,1)
   }
 
 }

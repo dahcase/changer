@@ -25,13 +25,34 @@ nnn = as.Date(nnn, '%Y_%m_%d')
 tras = brick(lapply(seq_len(length(nnn)), function(x) raster(matrix(NA, 1,1))))
 tras[] = ras[1,1]
 
+df = data.frame(ds = nnn, y = as.numeric(tras[]))
+mod = prophet::prophet(df)
+
+ras_sub = crop(ras, extent(ras, 1, 2, 1, 2))
+
+
+
+
+res0 = changer(ras_sub, nnn)
 res1 <- changer(tras, nnn)
 res2 <- changer(tras, nnn, n.changepoints = 100)
 
 
+
+
 #changeypointy
 
-chg = lapply(c(1,10,100,200), function(x) changer(tras,nnn,n.changepoints = x)[[1]]$changepoints)
-vapply(chg, length, 1) #same as input?
+chg1 = lapply(c(1,10,100,200), function(x) changer(tras,nnn,n.changepoints = x)[[1]]$changepoints)
+vapply(chg1, length, 1) #same as input?
 
+chg2 = lapply(c(1,10,100,200), function(x) changer(tras,nnn,n.changepoints = x, changepoint.prior.scale = .01)[[1]]$changepoints)
+vapply(chg2, length, 1) #same as input?
+
+chg3 = lapply(c(1,10,100,200), function(x) changer(tras,nnn,n.changepoints = x, changepoint.prior.scale = .001)[[1]]$changepoints)
+vapply(chg3, length, 1) #same as input?
+
+
+blah = changer(tras, nnn, n.changepoints = 100, changepoint.prior.scale = .01)[[1]]
+tras10000 = tras*10000
+blah = changer(tras10000, nnn, n.changepoints = 10, changepoint.prior.scale = .5)[[1]]
 
