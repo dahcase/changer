@@ -7,15 +7,16 @@
 #' @importFrom prophet prophet
 #' @export
 #'
-pixel_prophet <- function(x, dates, ...){
-
+pixel_prophet <- function(x, dates, dots = list()){
   df = data.frame(ds = dates, y = x)
+  dots$df = df
 
-  mod = prophet::prophet(df, ...)
+
+  mod = do.call(prophet::prophet, args = dots)
 
   #return the time and magnitude of changes
   stopifnot(NROW(mod$params$delta)==1)
-  res = list(as.numeric(rate_change = mod$params$delta), change_time = mod$changepoints)
+  res = list(rate_change = mod$params$delta[1,], change_time = mod$changepoints)
 
   return(res)
 }

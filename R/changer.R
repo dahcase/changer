@@ -46,8 +46,39 @@ changer.RasterBrick <- function(x, dates, method = 'prophet', FUTURE = FALSE, ..
   x <- array(x, dim = dim(x))
 
   if(method == 'prophet'){
-    ret <- future.apply::future_apply(x, 1:2, pixel_prophet, dates = dates, ...)
-    ret <- aperm(2,3,1)
+
+    dots = list(...)
+
+    #Prophet specifies 25 potential changepoints which are uniformly placed in the first 80% of the time series.
+    #https://facebook.github.io/prophet/docs/trend_changepoints.html
+    #https://github.com/facebook/prophet/blob/master/R/R/prophet.R#L478
+    #catch and replace arguments in dots to fix change points
+    if(any(names(dots) %in% 'changepoints')){
+      chgpts = dots$changepoints
+    }else{
+      n.changepoints = ifelse(is.null(dots$n.changepoints), 25, dots$n.changepoints)
+      changepoint.range = ifelse(is.null(dots$changepoint.range), .8, dots$changepoint.range)
+
+      hist.size <- floor(dim(x)[3] * changepoint.range)
+      if (n.changepoints + 1 > hist.size) {
+        n.changepoints <- hist.size - 1
+        message('n.changepoints greater than number of observations. Using ',
+                n.changepoints)
+      }
+      if (n.changepoints > 0) {
+        cp.indexes <- round(seq.int(1, hist.size,
+                                    length.out = (n.changepoints + 1))[-1])
+        changepoints <- dates[cp.indexes]
+      } else {
+        changepoints <- c()
+      }
+      chgpts = changepoints
+    }
+
+    dots$changepoints = chgpts
+    ret <- future.apply::future_apply(x, 1:2, pixel_prophet, dates = dates, dots = dots)
+
+
   }
 
 }
