@@ -23,8 +23,10 @@ if(!all(grepl('_', nnn, fixed = T))){
 nnn = as.Date(nnn, '%Y_%m_%d')
 
 #
-# ras_sub = crop(ras, extent(ras, 1, 2, 1, 2))
-# res0 = changer(ras_sub, nnn)
+ras_sub = crop(ras, extent(ras, 1, 2, 1, 2))
+ras_sub_sub = crop(ras, extent(ras,1,1,1,1))
+res0 = changer(ras_sub, nnn)
+res1 = changer(ras_sub_sub, nnn)
 # res1 = changer(ras_sub, nnn, changepoint.range = 1)
 # res2 = changer(ras_sub, nnn, changepoints = res1[2,2][[1]]$change_time[c(1,5,10,15,20,25)])
 # res3 = changer(ras_sub, nnn, changepoint.prior.scale = .005)
@@ -34,6 +36,9 @@ nnn = as.Date(nnn, '%Y_%m_%d')
 r1 <- changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .05)
 r2 <- changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .5)
 r3 <- changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .005)
+
+#create raster bricks from the change points
+
 
 #
 # tras = brick(lapply(seq_len(length(nnn)), function(x) raster(matrix(NA, 1,1))))

@@ -12,11 +12,11 @@ pixel_prophet <- function(x, dates, dots = list()){
   dots$df = df
 
 
-  mod = do.call(prophet::prophet, args = dots)
+  mod = suppressMessages(do.call(prophet::prophet, args = dots))
 
   #return the time and magnitude of changes
   stopifnot(NROW(mod$params$delta)==1)
-  res = list(rate_change = mod$params$delta[1,], change_time = mod$changepoints)
+  res = mod$params$delta[1,]
 
   return(res)
 }
