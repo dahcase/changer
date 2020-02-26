@@ -43,10 +43,7 @@ changer.RasterBrick <- function(x, dates, method = 'prophet', FUTURE = FALSE, ..
 
   stopifnot(inherits(dates, 'Date'))
 
-  geog = list( xmn = xmin(x), xmx = xmax(x), ymn = ymin(x), ymx = ymax(x), crs = crs(x))
-
-
-  x <- array(x, dim = dim(x))
+  #x_arr <- array(x, dim = dim(x))
 
   if(method == 'prophet'){
 
@@ -79,10 +76,16 @@ changer.RasterBrick <- function(x, dates, method = 'prophet', FUTURE = FALSE, ..
     }
 
     dots$changepoints = chgpts
-    ret <- future.apply::future_apply(x, 1:2, pixel_prophet, dates = dates, dots = dots)
-    ret <- aperm(ret, c(2,3,1))
 
-    ret <- raster::brick(ret, xmn = geog$xmn, xmx = geog$xmx, ymn = geog$ymn, ymx = geog$ymx, crs = geog$crs)
+    anom = function(v){
+      pixel_prophet(v, dates, dots)
+    }
+
+    ret <- calc(x, fun = anom)
+
+    #x_arr <- future.apply::future_apply(x_arr, 1:2, pixel_prophet, dates = dates, dots = dots)
+    #x_arr <- aperm(x_arr, c(2,3,1))
+    #x[] <- x_arr[]
     names(ret) <- chgpts
   }
 

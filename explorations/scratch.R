@@ -8,7 +8,6 @@ thecity = 'Dakar'
 out.dir = "/media/dan/processed/"
 layerfolder = '/media/dan/earth_engine/'
 
-
 #Load a dataset and its dates
 metadata = sg[funk == "" & time == "" & product == 'MOD13A1' & variables == 'NDVI' & city ==thecity]
 rasname = paste0(metadata[, paste(..thecity,product,version,variables,year_start,year_end,sep='_')],'.tif')
@@ -22,23 +21,103 @@ if(!all(grepl('_', nnn, fixed = T))){
 #convert to date paths
 nnn = as.Date(nnn, '%Y_%m_%d')
 
-#
-ras_sub = crop(ras, extent(ras, 1, 2, 1, 2))
-ras_sub_sub = crop(ras, extent(ras,1,1,1,1))
-res0 = changer(ras_sub, nnn)
-res1 = changer(ras_sub_sub, nnn)
+
 # res1 = changer(ras_sub, nnn, changepoint.range = 1)
 # res2 = changer(ras_sub, nnn, changepoints = res1[2,2][[1]]$change_time[c(1,5,10,15,20,25)])
 # res3 = changer(ras_sub, nnn, changepoint.prior.scale = .005)
 # res4 = changer(ras_sub, nnn, changepoint.prior.scale = .5)
 
 
+t_ras = crop(ras, extent(ras,40,45,45,50))
+t_1 = changer(t_ras, nnn, changepoint.range = .95, changepoint.prior.scale = .05)
+t_1_arr = as.array(t_1)
+stopifnot(ncol(t_ras)==ncol(t_1))
+stopifnot(nrow(t_ras) == nrow(t_1))
+
+chglocs = as.Date(substr(names(t_1), 2, nchar(names(t_1))), format = '%Y.%m.%d')
+t_arr = as.array(t_ras)
+t_2 = apply(t_arr, 1:2, pixel_prophet, dates = nnn, dots = list(changepoints = chglocs, changepoint.range = .95, changepoint.prior.scale = .05))
+t_2 = aperm(t_2, c(2,3,1))
+
 r1 <- changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .05)
 r2 <- changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .5)
 r3 <- changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .005)
 
-#create raster bricks from the change points
 
+validate_results = function(base_ras, res, npts = 100){
+
+  crds = expand.grid(1:ncol(base_ras), 1:nrow(base_ras))
+  sample_rows = sample(1:nrow(crds), npts, replace = F)
+
+  chglocs = as.Date(substr(names(res), 2, nchar(names(res))), format = '%Y.%m.%d')
+
+  #at the sample points, run changer
+  samps = lapply(sample_rows, function(x){
+    col = crds[x,1]
+    row = crds[x,2]
+
+    sras = c(base_ras[row,col])
+
+    compare = c(res[row,col])
+
+    chg = pixel_prophet(sras, nnn, list(changepoint.range = .95, changepoint.prior.scale = .05, changepoints = chglocs))
+
+    return(list(sum(chg == compare), chg, compare))
+
+  })
+
+  return(samps)
+
+}
+
+blah = validate_results(t_ras, t_1, 10)
+
+
+
+
+# test_pairs = data.table(sample(1:102, 10, replace = F), sample(1:110, 10, replace = F))
+
+# tests = lapply(1:nrow(test_pairs), function(x){
+#   rsub = crop(ras, extent(ras, test_pairs[x,V1],test_pairs[x,V1],test_pairs[x,V2],test_pairs[x,V2]))
+#   res = changer(rsub, nnn, changepoint.range = .95, changepoint.prior.scale = .05)
+#   chk = crop(r1, extent(r1, test_pairs[x,V1],test_pairs[x,V1],test_pairs[x,V2],test_pairs[x,V2]))
+#
+#   return(list(res,chk))
+# })
+#
+# tchk = vapply(tests, function(x) isTRUE(all.equal(x[[1]][], x[[2]][])), T)
+#
+#
+# #testy
+# test_ras = crop(ras, extent(ras, 10,20,10,20))
+# tr_chg = changer(test_ras, nnn, changepoint.range = .95, changepoint.prior.scale = .05)
+# tps = setDT(expand.grid(V1 = seq(10:20), V2 = seq(10:20)))
+# o <- lapply(1:nrow(tps), function(x){
+#   rsub = crop(test_ras, extent(ras, tps[x,V1] + 9,tps[x,V1],tps[x,V2],tps[x,V2]))
+#   res = changer(rsub, nnn, changepoint.range = .95, changepoint.prior.scale = .05)
+#   chk = crop(tr_chg, extent(tr_chg, tps[x,V1],tps[x,V1],tps[x,V2],tps[x,V2]))
+#   chk2 = crop(tr_chg, rsub)
+#
+#   return(list(res,chk, chk2))
+# })
+#
+# chker = lapply(o, function(x) isTRUE(all.equal(x[[1]][], x[[2]][])))
+# table(unlist(chker))
+
+
+#create summaries
+make_summaries = function(x){
+
+  #big change
+  x_bin = x>.001
+  x_sum = sum(x_bin)
+  x_abs_change = sum(abs(x))
+  x_abs_max = max(abs(x))
+  x_min = min(x)
+  x_max = max(x)
+
+
+}
 
 #
 # tras = brick(lapply(seq_len(length(nnn)), function(x) raster(matrix(NA, 1,1))))
