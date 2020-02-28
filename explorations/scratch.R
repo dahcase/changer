@@ -4,7 +4,7 @@ library('data.table')
 #for get layer dates
 source('~/Documents/code/earth_engine/summarize_functions.R')
 sg = readRDS('/media/dan/summary_grid.rds')
-thecity = 'Dakar'
+thecity = 'Ouagadougou'
 out.dir = "/media/dan/processed/"
 layerfolder = '/media/dan/earth_engine/'
 
@@ -39,9 +39,18 @@ t_arr = as.array(t_ras)
 t_2 = apply(t_arr, 1:2, pixel_prophet, dates = nnn, dots = list(changepoints = chglocs, changepoint.range = .95, changepoint.prior.scale = .05))
 t_2 = aperm(t_2, c(2,3,1))
 
-r1 <- changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .05)
-r2 <- changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .5)
-r3 <- changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .005)
+all.equal(t_1_arr, t_2)
+
+r1 <- readAll(changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .05))
+r1_arr = apply(as.array(ras), 1:2, function(x) pixel_prophet(x, dates = nnn, dots = list(changepoints = chglocs, changepoint.range = .95, changepoint.prior.scale = .05)))
+r1_arr = aperm(r1_arr, c(2,3,1))
+
+b = all.equal(r1_arr,as.array(r1))
+
+
+
+r2 <- readAll(changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .5))
+r3 <- readAll(changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .005))
 
 
 validate_results = function(base_ras, res, npts = 100){
@@ -109,15 +118,31 @@ blah = validate_results(t_ras, t_1, 10)
 make_summaries = function(x){
 
   #big change
-  x_bin = x>.001
+  x_bin = abs(x)>.001
   x_sum = sum(x_bin)
   x_abs_change = sum(abs(x))
   x_abs_max = max(abs(x))
   x_min = min(x)
   x_max = max(x)
 
+  r = brick(list(x_sum, x_abs_change, x_abs_max, x_min, x_max))
+  names(r) = c('binned_sum', 'sum_abs_chg', 'max_abs_chg', 'min_chg', 'max_chg')
+  return(r)
 
 }
+
+r1_sum = make_summaries(r1)
+r2_sum = make_summaries(r2)
+r3_sum = make_summaries(r3)
+
+writeRaster(r1, filename = '/media/dan/changer/r1.tif', overwrite = T)
+writeRaster(r2, filename = '/media/dan/changer/r2.tif', overwrite = T)
+writeRaster(r3, filename = '/media/dan/changer/r3.tif', overwrite = T)
+
+
+writeRaster(r1_sum, filename = '/media/dan/changer/r1_sum.tif', overwrite = T)
+writeRaster(r2_sum, filename = '/media/dan/changer/r2_sum.tif', overwrite = T)
+writeRaster(r3_sum, filename = '/media/dan/changer/r3_sum.tif', overwrite = T)
 
 #
 # tras = brick(lapply(seq_len(length(nnn)), function(x) raster(matrix(NA, 1,1))))
