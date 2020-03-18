@@ -1,5 +1,9 @@
 library('changer')
 library('data.table')
+library('tmap')
+library('raster')
+library('rasterVis')
+library('ggplot2')
 
 #for get layer dates
 source('~/Documents/code/earth_engine/summarize_functions.R')
@@ -51,6 +55,9 @@ b = all.equal(r1_arr,as.array(r1))
 
 r2 <- readAll(changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .5))
 r3 <- readAll(changer(ras, nnn, changepoint.range = .95, changepoint.prior.scale = .005))
+
+r4 <- readAll(changer(ras, nnn, changepoint.range = 1, changepoint.prior.scale = .007, changepoints = nnn)) #does not finish
+
 
 
 validate_results = function(base_ras, res, npts = 100){
@@ -138,12 +145,80 @@ r3_sum = make_summaries(r3)
 writeRaster(r1, filename = '/media/dan/changer/r1.tif', overwrite = T)
 writeRaster(r2, filename = '/media/dan/changer/r2.tif', overwrite = T)
 writeRaster(r3, filename = '/media/dan/changer/r3.tif', overwrite = T)
-
-
 writeRaster(r1_sum, filename = '/media/dan/changer/r1_sum.tif', overwrite = T)
 writeRaster(r2_sum, filename = '/media/dan/changer/r2_sum.tif', overwrite = T)
 writeRaster(r3_sum, filename = '/media/dan/changer/r3_sum.tif', overwrite = T)
 
+
+#make some plots
+
+pdf(paste0('/media/dan/changer/r_plots.pdf'), height = 10, width = 10)
+for(rs in c('r1','r2','r3')){
+
+
+  rdf = as.data.frame(get(rs), xy = T)
+  setDT(rdf)
+  rdf= melt(rdf, id.vars = c('x','y'), variable.factor = F)
+  rdf[abs(value) <.0001, value := NA]
+  rdf[, variable := substr(variable,2,nchar(variable))]
+  g = ggplot(rdf, aes(x = x, y = y, fill = value)) + geom_raster() +
+    facet_wrap(~variable) + scale_fill_viridis_c(option = 'A') + theme_bw() +
+    theme(axis.ticks.x = element_blank()) + ggtitle(paste0('Ouagadougou: ', rs)) + coord_fixed()
+
+  plot(g)
+}
+dev.off()
+
+pdf(paste0('/media/dan/changer/rsum_plots.pdf'), height = 7, width = 10)
+for(rs in 1:5){
+
+  rs_ras = brick(list(r1_sum[[rs]], r2_sum[[rs]], r3_sum[[rs]]))
+  names(rs_ras) = c('r1', 'r2', 'r3')
+  rdf = as.data.frame(rs_ras, xy = T)
+  setDT(rdf)
+  rdf= melt(rdf, id.vars = c('x','y'), variable.factor = F)
+  g = ggplot(rdf, aes(x = x, y = y, fill = value)) + geom_raster() +
+    facet_wrap(~variable) + scale_fill_viridis_c(option = 'A') + theme_bw() +
+    theme(axis.ticks.x = element_blank()) + ggtitle(paste0('Ouagadougou: ', names(r1_sum)[rs])) + coord_fixed()
+
+  plot(g)
+}
+dev.off()
+
+
+pdf(paste0('/media/dan/changer/px_plots.pdf'), height = 10, width = 10)
+
+#make some pixel
+rasdf = as.data.frame(ras)
+setDT(rasdf)
+setnames(rasdf, as.character(nnn))
+rasdf[, pid := .I]
+r1df = as.data.frame(r1)
+setDT(r1df)
+r1df[, pid := .I]
+
+rasdf = melt(rasdf,id.vars = 'pid', variable.factor = FALSE)
+r1df = melt(r1df, id.vars = 'pid', variable.factor = FALSE)
+
+id = sample(unique(rasdf$pid), 16, replace =  F )
+
+rasdf = rasdf[pid %in% id]
+r1df = r1df[pid %in% id]
+
+rasdf[, variable := as.Date(variable)]
+r1df[, variable := as.Date(substr(variable,2,nchar(variable)), format = '%Y.%m.%d')]
+
+g = ggplot(rasdf, aes(x = variable, y = value, group = pid)) + geom_line() +
+  facet_wrap(~pid) + theme_bw()
+
+g
+
+g = ggplot(r1df, aes(x = variable, y = value, group = pid)) + geom_bar(stat = 'identity') +
+  facet_wrap(~pid) + theme_bw()
+
+g
+
+dev.off()
 #
 # tras = brick(lapply(seq_len(length(nnn)), function(x) raster(matrix(NA, 1,1))))
 # tras[] = ras[1,1]
